@@ -1,27 +1,16 @@
-package com.sumatone.cloud.securecloud;//package com.javaingrab.security.encrypt;
+package com.sumatone.cloud.securecloud.Control;//package com.javaingrab.security.encrypt;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.SecretKeySpec;
 
-import java.io.OutputStream;
 import java.io.Serializable;
-import java.security.Provider;
-import java.util.*;
 
 
 public class AESEncryptor {

@@ -14,31 +14,27 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Activities;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
 
-import java.util.List;
+import com.sumatone.cloud.securecloud.Fragments.DownloadFragment;
+import com.sumatone.cloud.securecloud.Fragments.UploadFragment;
+import com.sumatone.cloud.securecloud.R;
+import com.sumatone.cloud.securecloud.Customs.SlidingTabLayout;
 
 
 /**
  * Created by shalini on 16-06-2015.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener {
 
 
     private static final int NUM_PAGES = 2;
@@ -71,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
                 return getResources().getColor(R.color.white);
             }
         });
+        pager.addOnPageChangeListener(this);
 
 
     }
@@ -87,10 +84,27 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
     }
 
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+        if(position==1) {
+            ((DownloadFragment)adapter.getFragment()).setData();
+        }
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int state) {
+
+    }
+
 
     private class SliderAdapter extends FragmentStatePagerAdapter {
         String[] tabs;
-
+        Fragment f;
         public SliderAdapter(FragmentManager supportFragmentManager) {
             super(supportFragmentManager);
             tabs = getResources().getStringArray(R.array.tabs_name);
@@ -99,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public Fragment getItem(int position) {
             Log.d("pos", String.valueOf(position));
-            Fragment f;
+
             if (position == 0)
                 f = new UploadFragment();
             else
@@ -107,6 +121,10 @@ public class MainActivity extends AppCompatActivity {
 
             return f;
 
+        }
+
+        public Fragment getFragment(){
+            return f;
         }
 
         @Override

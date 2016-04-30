@@ -14,7 +14,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Boundary;
 
 /**
  * Created by shalini on 21-02-2015.

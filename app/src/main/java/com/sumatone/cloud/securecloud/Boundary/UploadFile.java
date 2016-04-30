@@ -1,4 +1,4 @@
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Boundary;
 
 /**
  * Created by alfainfinity on 04/11/15.

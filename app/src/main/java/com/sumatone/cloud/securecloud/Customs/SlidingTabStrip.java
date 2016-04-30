@@ -14,7 +14,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Customs;
 
 import android.R;
 import android.content.Context;
@@ -78,7 +78,9 @@ class SlidingTabStrip extends LinearLayout {
     void setCustomTabColorizer(SlidingTabLayout.TabColorizer customTabColorizer) {
         mCustomTabColorizer = customTabColorizer;
         invalidate();
+
     }
+
 
     void setSelectedIndicatorColors(int... colors) {
         // Make sure that the custom colorizer is removed

@@ -1,11 +1,10 @@
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Activities;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 
 import android.app.LoaderManager.LoaderCallbacks;
-import android.content.ContentResolver;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
@@ -41,6 +40,8 @@ import com.android.volley.toolbox.StringRequest;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.SignInButton;
+import com.sumatone.cloud.securecloud.Boundary.AppController;
+import com.sumatone.cloud.securecloud.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;

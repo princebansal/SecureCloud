@@ -14,7 +14,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Customs;
 
 import android.content.Context;
 import android.graphics.Typeface;
@@ -30,6 +30,8 @@ import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import com.sumatone.cloud.securecloud.R;
 
 /**
  * To be used with ViewPager to provide a tab indicator component which give constant feedback as to

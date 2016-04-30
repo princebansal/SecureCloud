@@ -14,7 +14,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Fragments;
 
 import android.app.AlertDialog;
 import android.content.ContentUris;
@@ -40,7 +40,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,18 +50,32 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.sumatone.cloud.securecloud.Boundary.AppController;
+import com.sumatone.cloud.securecloud.Control.Ciphers;
+import com.sumatone.cloud.securecloud.Control.PrimeGenerator;
+import com.sumatone.cloud.securecloud.Instances.AccessControlPolicy;
+import com.sumatone.cloud.securecloud.Instances.PolicyConfiguration;
+import com.sumatone.cloud.securecloud.R;
+import com.sumatone.cloud.securecloud.Activities.RegisterActivity;
+import com.sumatone.cloud.securecloud.Boundary.UploadFile;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
 
 
 /**
@@ -73,13 +86,14 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
     public TextView fileName, progress, fileSize;
     public Button uploadButton, selectFile;
     private Uri fileUri = null;
-    private static final String uploadUrl = "https://datacomm.azurewebsites.net/upload.php";
+    private static final String uploadUrl = "http://hbppac.cloudapp.net:8080/hbppacjava/upload.jsp";
     private static final String taUrl = "http://datacomm.azurewebsites.net/trustedAuthority.php";
     private String filePath;
     private ProgressBar uploadProgressBar;
     private String userName, level, role, nof;
     private JSONArray acpsArray = null;
     private BigInteger blindValue;
+    private int state = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -88,6 +102,7 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
         init(rootView);
         setInit();
         //setData();
+
         return rootView;
     }
 
@@ -120,9 +135,9 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
         }
     }
 
-    private void encryptAndUpload() {
+    private void encryptAndUpload(final JSONObject policy) {
 
-        new AsyncTask<Void, Void, File>() {
+        new AsyncTask<Void, Void, Map<String, Object>>() {
 
             @Override
             protected void onPreExecute() {
@@ -132,7 +147,7 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
             }
 
             @Override
-            protected File doInBackground(Void... params) {
+            protected Map<String, Object> doInBackground(Void... params) {
 
                 if (!TextUtils.isEmpty(filePath)) {
                     try {
@@ -148,7 +163,7 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
                         Log.d("generator", result[1].toString());
                         blindValue = result[0];
 
-                        BigInteger relativePrime=result[0].subtract(BigInteger.valueOf(2));
+                        BigInteger relativePrime = result[0].subtract(BigInteger.valueOf(2));
                         //BigInteger nts=result[0].add(BigInteger.valueOf(1)).divide(BigInteger.valueOf(2));
                         long time = System.currentTimeMillis();
                         long afterTime;
@@ -167,14 +182,18 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
                         Log.d("after dec", String.valueOf(afterTime));
                         Log.d("after diff ", String.valueOf(afterTime - time));
                         */
-                        int hash = tempFile.getName().hashCode();
+                        String orgName = tempFile.getName();
+                        int hash = orgName.hashCode();
                         File f = new File(getActivity().getCacheDir(), nof + "_" + hash + "." + tempFile.getName().substring(tempFile.getName().lastIndexOf(".") + 1));
                         Log.d("newFileName", f.getName());
                         FileOutputStream fileOutputStream = new FileOutputStream(f);
                         fileOutputStream.write(enByte);
                         fileInputStream.close();
                         fileOutputStream.close();
-                        return f;
+                        Map<String, Object> content = new HashMap<String, Object>();
+                        content.put("file", f);
+                        content.put("originalName", orgName);
+                        return content;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -187,7 +206,7 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
             }
 
             @Override
-            protected void onPostExecute(File aVoid) {
+            protected void onPostExecute(Map<String, Object> aVoid) {
                 super.onPostExecute(aVoid);
 
                 if (aVoid == null || blindValue == null) {
@@ -195,7 +214,7 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
                     progress.setText("Error");
                 } else {
 
-                    informTrustedAuthority(aVoid, blindValue);
+                    informTrustedAuthority((File) aVoid.get("file"), blindValue, (String) aVoid.get("originalName"),policy);
 
                 }
 
@@ -203,7 +222,7 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
         }.execute();
     }
 
-    private void informTrustedAuthority(final File aVoid, final BigInteger blindValue) {
+    private void informTrustedAuthority(final File aVoid, final BigInteger blindValue, final String originalName, final JSONObject policy) {
         uploadProgressBar.setVisibility(View.VISIBLE);
         progress.setText("Informing TA");
         selectFile.setEnabled(false);
@@ -249,8 +268,11 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map postParams = new HashMap<String, String>();
                 postParams.put("filename", aVoid.getName());
-                postParams.put("acps", acpsArray.toString());
+                postParams.put("acps", policy.toString());
                 postParams.put("unblind", blindValue.toString());
+                postParams.put("originalName", originalName);
+                postParams.put("uploaderLevel", String.valueOf(PreferenceManager.getDefaultSharedPreferences(getActivity()).getInt("level", 7)));
+                postParams.put("uploaderId", PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("email", ""));
                 return postParams;
             }
         };
@@ -281,30 +303,93 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
 
     private void selectAcps() {
         final CharSequence[] items = RegisterActivity.ROLES;
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle("Who can access this file?");
-        builder.setMultiChoiceItems(items, null, new DialogInterface.OnMultiChoiceClickListener() {
-            public void onClick(DialogInterface dialogInterface, int item, boolean state) {
+        int level = PreferenceManager.getDefaultSharedPreferences(getActivity()).getInt("level", 7);
+        int levelBelowThisUser = searchLastLevel(RegisterActivity.LEVELS, level);
+        final CharSequence[] filterItems = Arrays.copyOfRange(items, levelBelowThisUser + 1, items.length);
 
-            }
-        });
-        builder.setPositiveButton("Done & Upload", new DialogInterface.OnClickListener() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle("Who can download the file?");
+        builder.setMultiChoiceItems(filterItems, null, null);
+
+        final List<AccessControlPolicy> tempList = new ArrayList<AccessControlPolicy>();
+
+        builder.setPositiveButton("Next", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                SparseBooleanArray CheCked = ((AlertDialog) dialog).getListView().getCheckedItemPositions();
-                acpsArray = new JSONArray();
-                for (int i = 0; i < CheCked.size(); i++) {
-                    if (CheCked.get(i) == true) {
-                        JSONObject object = new JSONObject();
-                        try {
-                            object.put(String.valueOf(RegisterActivity.LEVELS[i]), "download");
-                            acpsArray.put(object);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                switch (state) {
+                    case 0:
+                        SparseBooleanArray CheCked = ((AlertDialog) dialog).getListView().getCheckedItemPositions();
+                        acpsArray = new JSONArray();
+                        for (int i = 0; i < CheCked.size(); i++) {
+                            if (CheCked.get(i) == true) {
+                                List<String> actionList = new ArrayList<String>();
+                                actionList.add("download");
+                                tempList.add(new AccessControlPolicy(filterItems[i].toString(),actionList));
+                                /*JSONObject object = new JSONObject();
+                                try {
+                                    object.put(String.valueOf(RegisterActivity.LEVELS[i]), "download");
+                                    acpsArray.put(object);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }*/
+                            }
                         }
-                    }
-                }
+                        state = 1;
+                        builder.setTitle("Who can delete the file?");
+                        builder.setMultiChoiceItems(filterItems, null, null);
+                        builder.create().show();
 
-                encryptAndUpload();
+                        //encryptAndUpload();
+                        break;
+                    case 1:
+                        CheCked = ((AlertDialog) dialog).getListView().getCheckedItemPositions();
+                        acpsArray = new JSONArray();
+                        for (int i = 0; i < CheCked.size(); i++) {
+                            if (CheCked.get(i) == true) {
+                                for (int j = 0; j < tempList.size(); j++) {
+                                    if (tempList.get(j).getRole().equals(filterItems[i].toString())) {
+                                        tempList.get(j).getActions().add("delete");
+                                        break;
+                                    }
+                                }
+                                /*JSONObject object = new JSONObject();
+                                try {
+                                    object.put(String.valueOf(RegisterActivity.LEVELS[i]), "download");
+                                    acpsArray.put(object);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }*/
+                            }
+                        }
+                        state = 2;
+                        builder.setTitle("Who can update the file?");
+                        builder.setMultiChoiceItems(filterItems, null, null);
+                        builder.create().show();
+                        break;
+                    case 2:
+                        state=0;
+                        CheCked = ((AlertDialog) dialog).getListView().getCheckedItemPositions();
+                        acpsArray = new JSONArray();
+                        for (int i = 0; i < CheCked.size(); i++) {
+                            if (CheCked.get(i) == true) {
+                                for (int j = 0; j < tempList.size(); j++) {
+                                    if (tempList.get(j).getRole().equals(filterItems[i].toString())) {
+                                        tempList.get(j).getActions().add("update");
+                                        break;
+                                    }
+                                }
+                                /*JSONObject object = new JSONObject();
+                                try {
+                                    object.put(String.valueOf(RegisterActivity.LEVELS[i]), "download");
+                                    acpsArray.put(object);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }*/
+                            }
+                        }
+                        formPolicyConfigurations(tempList);
+                        break;
+                    default:
+                }
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -313,6 +398,41 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
             }
         });
         builder.create().show();
+    }
+
+    private void formPolicyConfigurations(List<AccessControlPolicy> tempList) {
+        PolicyConfiguration policyConfiguration = new PolicyConfiguration(new ArrayList<AccessControlPolicy>(),
+                new ArrayList<AccessControlPolicy>(), new ArrayList<AccessControlPolicy>());
+
+        for (int i = 0; i < tempList.size(); i++) {
+            AccessControlPolicy policy = tempList.get(i);
+            if (policy.getActions().contains("download")) ;
+            policyConfiguration.getDownloadList().add(policy);
+
+            if (policy.getActions().contains("delete")) ;
+            policyConfiguration.getDeleteList().add(policy);
+
+            if (policy.getActions().contains("update")) ;
+            policyConfiguration.getUpdateList().add(policy);
+
+
+        }
+
+        try {
+            encryptAndUpload(policyConfiguration.toJson());
+        } catch (JSONException e) {
+
+
+        }
+    }
+
+    private int searchLastLevel(int[] levels, int level) {
+        for (int i = 0; i < levels.length; i++) {
+            if (levels.length - i - 1 == level) {
+                return levels.length - i - 1;
+            }
+        }
+        return levels.length - 1;
     }
 
     private void uploadFile(File aVoid) {
@@ -328,7 +448,8 @@ public class UploadFragment extends Fragment implements View.OnClickListener {
             map.put("level", level);
             selectFile.setEnabled(false);
             uploadButton.setEnabled(false);
-            UploadFile uploadFile = new UploadFile(uploadUrl, new Response.ErrorListener() {
+            String newUploadUrl = uploadUrl + "?level=" + level;
+            UploadFile uploadFile = new UploadFile(newUploadUrl, new Response.ErrorListener() {
                 @Override
                 public void onErrorResponse(VolleyError error) {
                     error.printStackTrace();

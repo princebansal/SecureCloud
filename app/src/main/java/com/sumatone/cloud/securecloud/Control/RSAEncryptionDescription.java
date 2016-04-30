@@ -1,4 +1,4 @@
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Control;
 
 /**
  * Created by alfainfinity on 07/11/15.

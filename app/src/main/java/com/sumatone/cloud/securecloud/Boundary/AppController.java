@@ -14,7 +14,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.sumatone.cloud.securecloud;
+package com.sumatone.cloud.securecloud.Boundary;
 
 /**
  * Created by shalini on 21-02-2015.
@@ -28,6 +28,8 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.Volley;
 
 public class AppController extends Application {
+
+    public static String SIGNATURE_KEY="klk123n138921bnejkwq_as3e3";
 
     public static final String TAG = AppController.class
             .getSimpleName();
